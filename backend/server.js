@@ -1,5 +1,4 @@
 const express = require("express");
-const { Pool } = require("pg");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -9,24 +8,24 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// postgresql connection pool
-const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "password",
-  database: process.env.DB_NAME || "genders_db",
-  port: process.env.DB_PORT || 5432,
-});
+// In-memory data store
+let genders = [
+  { id: 1, code: '1', gender_label: 'Male - ذكر', description: 'Male gender' },
+  { id: 2, code: '2', gender_label: 'Female - أنثى', description: 'Female gender' }
+];
+
+let genderSelections = [];
+let nextGenderId = 3;
+let nextSelectionId = 1;
 
 // ========== GENDERS CRUD ENDPOINTS ==========
 
 // GET all genders
 app.get("/api/genders", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM genders ORDER BY id ASC");
-    res.json(result.rows);
+    res.json(genders);
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error fetching genders", error: error.message });
   }
 });
@@ -35,13 +34,13 @@ app.get("/api/genders", async (req, res) => {
 app.get("/api/genders/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM genders WHERE id = $1", [id]);
-    if (result.rows.length === 0) {
+    const gender = genders.find(g => g.id == id);
+    if (!gender) {
       return res.status(404).json({ message: "Gender not found" });
     }
-    res.json(result.rows[0]);
+    res.json(gender);
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error fetching gender", error: error.message });
   }
 });
@@ -49,23 +48,28 @@ app.get("/api/genders/:id", async (req, res) => {
 // POST - Create new gender
 app.post("/api/genders", async (req, res) => {
   try {
-    const { code, gender_label, description } = req.body;
+    const { gender_label, description } = req.body;
+    const code = req.body.code || (genders.length + 1).toString();
 
-    if (!code || !gender_label) {
-      return res.status(400).json({ message: "Code and gender_label are required" });
+    if (!gender_label) {
+      return res.status(400).json({ message: "Gender_label is required" });
     }
 
-    const result = await pool.query(
-      "INSERT INTO genders (code, gender_label, description) VALUES ($1, $2, $3) RETURNING *",
-      [code, gender_label, description || ""]
-    );
+    const newGender = {
+      id: nextGenderId++,
+      code,
+      gender_label,
+      description: description || ""
+    };
+
+    genders.push(newGender);
 
     res.status(201).json({
       message: "Gender added successfully",
-      gender: result.rows[0],
+      gender: newGender,
     });
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error creating gender", error: error.message });
   }
 });
@@ -74,27 +78,26 @@ app.post("/api/genders", async (req, res) => {
 app.put("/api/genders/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { code, gender_label, description } = req.body;
+    const { gender_label, description } = req.body;
+    const code = req.body.code || genders.find(g => g.id == id)?.code;
 
-    if (!code || !gender_label) {
-      return res.status(400).json({ message: "Code and gender_label are required" });
+    if (!gender_label) {
+      return res.status(400).json({ message: "Gender_label is required" });
     }
 
-    const result = await pool.query(
-      "UPDATE genders SET code = $1, gender_label = $2, description = $3 WHERE id = $4 RETURNING *",
-      [code, gender_label, description || "", id]
-    );
-
-    if (result.rows.length === 0) {
+    const genderIndex = genders.findIndex(g => g.id == id);
+    if (genderIndex === -1) {
       return res.status(404).json({ message: "Gender not found" });
     }
 
+    genders[genderIndex] = { ...genders[genderIndex], code, gender_label, description: description || "" };
+
     res.json({
       message: "Gender updated successfully",
-      gender: result.rows[0],
+      gender: genders[genderIndex],
     });
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error updating gender", error: error.message });
   }
 });
@@ -104,18 +107,19 @@ app.delete("/api/genders/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query("DELETE FROM genders WHERE id = $1 RETURNING *", [id]);
-
-    if (result.rows.length === 0) {
+    const genderIndex = genders.findIndex(g => g.id == id);
+    if (genderIndex === -1) {
       return res.status(404).json({ message: "Gender not found" });
     }
 
+    const deletedGender = genders.splice(genderIndex, 1)[0];
+
     res.json({
       message: "Gender deleted successfully",
-      gender: result.rows[0],
+      gender: deletedGender,
     });
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error deleting gender", error: error.message });
   }
 });
@@ -125,12 +129,20 @@ app.delete("/api/genders/:id", async (req, res) => {
 // GET all selections
 app.get("/api/gender-selections", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT gs.id, gs.user_id, g.code, g.gender_label, g.description, gs.selected_at FROM gender_selections gs JOIN genders g ON gs.gender_id = g.id ORDER BY gs.selected_at DESC"
-    );
-    res.json(result.rows);
+    const result = genderSelections.map(sel => {
+      const gender = genders.find(g => g.id === sel.gender_id);
+      return {
+        id: sel.id,
+        user_id: sel.user_id,
+        code: gender ? gender.code : null,
+        gender_label: gender ? gender.gender_label : null,
+        description: gender ? gender.description : null,
+        selected_at: sel.selected_at
+      };
+    }).sort((a, b) => new Date(b.selected_at) - new Date(a.selected_at));
+    res.json(result);
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error fetching selections", error: error.message });
   }
 });
@@ -144,17 +156,21 @@ app.post("/api/gender-selections", async (req, res) => {
       return res.status(400).json({ message: "user_id and gender_id are required" });
     }
 
-    const result = await pool.query(
-      "INSERT INTO gender_selections (user_id, gender_id) VALUES ($1, $2) RETURNING *",
-      [user_id, gender_id]
-    );
+    const newSelection = {
+      id: nextSelectionId++,
+      user_id,
+      gender_id,
+      selected_at: new Date().toISOString()
+    };
+
+    genderSelections.push(newSelection);
 
     res.status(201).json({
       message: "Selection added successfully",
-      selection: result.rows[0],
+      selection: newSelection,
     });
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error creating selection", error: error.message });
   }
 });
@@ -164,18 +180,19 @@ app.delete("/api/gender-selections/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query("DELETE FROM gender_selections WHERE id = $1 RETURNING *", [id]);
-
-    if (result.rows.length === 0) {
+    const selectionIndex = genderSelections.findIndex(s => s.id == id);
+    if (selectionIndex === -1) {
       return res.status(404).json({ message: "Selection not found" });
     }
 
+    const deletedSelection = genderSelections.splice(selectionIndex, 1)[0];
+
     res.json({
       message: "Selection deleted successfully",
-      selection: result.rows[0],
+      selection: deletedSelection,
     });
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Error:", error);
     res.status(500).json({ message: "Error deleting selection", error: error.message });
   }
 });
@@ -185,16 +202,9 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "Server is running" });
 });
 
+// Serve static files from frontend
+app.use(express.static('../frontend'));
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-    return res.status(500).json({
-      message: "Server error",
-    });
-  }
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`Server running on http://localhost:${process.env.PORT || 3000}`);
 });

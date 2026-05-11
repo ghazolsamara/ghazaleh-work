@@ -22,14 +22,11 @@
     <h1>🏳️ Gender Management</h1>
   </div>
 
-  <div class="form-grid">         <!-- NOT "form-row" -->
-    <div class="input-field">     <!-- NOT "form-group" -->
-      <label>🔢 Internal Code</label>
-      <input type="text" id="code" placeholder="Enter internal code">
-    </div>
+  <div class="form-grid" id="formSection">         <!-- NOT "form-row" -->
+
     <div class="input-field">
       <label>⚧ Gender</label>
-      <select>
+      <select id="gender">
         <option>Male</option>
         <option>Female</option>
       </select>
@@ -43,6 +40,7 @@
   <div class="actions-bar">       <!-- NOT "buttons" -->
     <button class="btn btn-add">➕ Add</button>
     <button class="btn btn-edit">✏️ Edit</button>
+    <button class="btn btn-save">💾 Save</button>
     <button class="btn btn-delete">🗑️ Delete</button>
     <button class="btn btn-cancel">❌ Cancel</button>
   </div>
@@ -54,7 +52,7 @@
   <div class="table-container">
     <table>
       <thead>
-        <tr><th>Internal Code</th><th>Gender</th><th>Description</th><th>Actions</th></tr>
+        <tr><th>Gender</th><th>Description</th></tr>
       </thead>
       <tbody>
       </tbody>

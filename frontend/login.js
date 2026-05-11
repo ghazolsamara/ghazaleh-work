@@ -1,18 +1,33 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://localhost:3000/api";
 let selectedRow = null;
 let genders = [];
+let isEditMode = false;
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
   loadGenders();
   setupEventListeners();
+  disableAllFields();
 });
+
+// Disable all input fields
+function disableAllFields() {
+  document.getElementById("description").disabled = true;
+  document.getElementById("gender").disabled = true;
+}
+
+// Enable all input fields
+function enableAllFields() {
+  document.getElementById("description").disabled = false;
+  document.getElementById("gender").disabled = false;
+}
 
 // Setup event listeners for buttons
 function setupEventListeners() {
-  document.querySelector(".btn-add").addEventListener("click", addData);
+  document.querySelector(".btn-add").addEventListener("click", showAddForm);
   document.querySelector(".btn-edit").addEventListener("click", editData);
-  document.querySelector(".btn-delete").addEventListener("click", deleteData);
+  document.querySelector(".btn-save").addEventListener("click", saveAddData);
+  document.querySelector(".btn-delete").addEventListener("click", deleteSelectedRow);
   document.querySelector(".btn-cancel").addEventListener("click", cancelData);
 }
 
@@ -37,7 +52,6 @@ function displayGenders() {
     const row = tbody.insertRow();
     row.dataset.id = gender.id;
     row.innerHTML = `
-      <td>${gender.code}</td>
       <td>${gender.gender_label}</td>
       <td>${gender.description}</td>
       <td class="row-actions">
@@ -53,27 +67,32 @@ function displayGenders() {
 function selectRow(genderId) {
   const gender = genders.find((g) => g.id === genderId);
   if (gender) {
-    document.getElementById("code").value = gender.code;
     document.getElementById("description").value = gender.description;
-    document.querySelector("select").value = gender.gender_label.includes("Male") ? "Male" : "Female";
+    document.getElementById("gender").value = gender.gender_label.includes("Male") ? "Male" : "Female";
     selectedRow = genderId;
   }
 }
 
-// ADD new gender
-async function addData() {
-  const code = document.getElementById("code").value;
-  const description = document.getElementById("description").value;
-  const genderSelect = document.querySelector("select");
-  const gender_label = genderSelect.value === "Male" ? "Male - ذكر" : "Female - أنثى";
+// Show Add Form
+function showAddForm() {
+  isEditMode = false;
+  clearFields();
+  enableAllFields();
+}
 
-  if (!code || !description) {
-    alert("Please fill all fields");
+// Save Add Data
+async function saveAddData() {
+  if (isEditMode) {
+    await updateEditedData();
     return;
   }
 
-  if (code !== "1" && code !== "2") {
-    alert("Invalid code! Use 1 for Male or 2 for Female");
+  const description = document.getElementById("description").value;
+  const genderSelect = document.getElementById("gender");
+  const gender_label = genderSelect.value === "Male" ? "Male - ذكر" : "Female - أنثى";
+
+  if (!description) {
+    alert("Please fill the description");
     return;
   }
 
@@ -81,7 +100,7 @@ async function addData() {
     const response = await fetch(`${API_URL}/genders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, gender_label, description }),
+      body: JSON.stringify({ gender_label, description }),
     });
 
     if (!response.ok) {
@@ -91,6 +110,9 @@ async function addData() {
 
     await loadGenders();
     clearFields();
+    isEditMode = false;
+    disableAllFields();
+    alert("Gender added successfully!");
   } catch (error) {
     console.error("Error adding gender:", error);
     alert("Failed to add gender: " + error.message);
@@ -103,14 +125,23 @@ async function editData() {
     alert("Select a row first");
     return;
   }
+  isEditMode = true;
+  enableAllFields();
+}
 
-  const code = document.getElementById("code").value;
+// UPDATE edited data
+async function updateEditedData() {
+  if (selectedRow === null) {
+    alert("Select a row first");
+    return;
+  }
+
   const description = document.getElementById("description").value;
-  const genderSelect = document.querySelector("select");
+  const genderSelect = document.getElementById("gender");
   const gender_label = genderSelect.value === "Male" ? "Male - ذكر" : "Female - أنثى";
 
-  if (!code || !description) {
-    alert("Please fill all fields");
+  if (!description) {
+    alert("Please fill the description");
     return;
   }
 
@@ -118,7 +149,7 @@ async function editData() {
     const response = await fetch(`${API_URL}/genders/${selectedRow}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, gender_label, description }),
+      body: JSON.stringify({ gender_label, description }),
     });
 
     if (!response.ok) {
@@ -128,10 +159,54 @@ async function editData() {
 
     await loadGenders();
     clearFields();
+    isEditMode = false;
+    disableAllFields();
+    alert("Gender updated successfully!");
   } catch (error) {
     console.error("Error updating gender:", error);
     alert("Failed to update gender: " + error.message);
   }
+}
+
+// SAVE description
+async function saveData() {
+  if (selectedRow === null) {
+    alert("Select a row first");
+    return;
+  }
+
+  const description = document.getElementById("description").value;
+
+  try {
+    const gender = genders.find(g => g.id === selectedRow);
+    const response = await fetch(`${API_URL}/genders/${selectedRow}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gender_label: gender.gender_label, description }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    await loadGenders();
+    clearFields();
+    disableAllFields();
+    alert("Description saved successfully!");
+  } catch (error) {
+    console.error("Error saving description:", error);
+    alert("Failed to save description: " + error.message);
+  }
+}
+
+// DELETE selected row
+async function deleteSelectedRow() {
+  if (selectedRow === null) {
+    alert("Please select a row to delete");
+    return;
+  }
+  confirmDelete(selectedRow);
 }
 
 // DELETE gender
@@ -148,6 +223,8 @@ async function deleteData(genderId) {
 
     await loadGenders();
     clearFields();
+    disableAllFields();
+    alert("Gender deleted successfully!");
   } catch (error) {
     console.error("Error deleting gender:", error);
     alert("Failed to delete gender: " + error.message);
@@ -163,13 +240,16 @@ function confirmDelete(genderId) {
 
 // CANCEL - Clear fields
 function cancelData() {
+  isEditMode = false;
   clearFields();
+  disableAllFields();
 }
+
 
 // CLEAR FIELDS
 function clearFields() {
-  document.getElementById("code").value = "";
   document.getElementById("description").value = "";
-  document.querySelector("select").value = "Male";
+  document.getElementById("gender").value = "Male";
   selectedRow = null;
+  disableAllFields();
 }
