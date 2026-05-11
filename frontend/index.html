@@ -1,0 +1,46 @@
+<div class="main-card">           <!-- NOT "container" -->
+  <div class="main-title">        <!-- NOT just "header" -->
+    <h1>🏳️ Gender Management</h1>
+  </div>
+
+  <div class="form-grid">         <!-- NOT "form-row" -->
+    <div class="input-field">     <!-- NOT "form-group" -->
+      <label>🔢 Internal Code</label>
+      <input type="text" placeholder="Enter internal code">
+    </div>
+    <div class="input-field">
+      <label>⚧ Gender</label>
+      <select>
+        <option>Male</option>
+        <option>Female</option>
+      </select>
+    </div>
+    <div class="input-field">
+      <label>📝 Description</label>
+      <input type="text" placeholder="Enter description">
+    </div>
+  </div>
+
+  <div class="actions-bar">       <!-- NOT "buttons" -->
+    <button class="btn btn-add">➕ Add</button>
+    <button class="btn btn-edit">✏️ Edit</button>
+    <button class="btn btn-delete">🗑️ Delete</button>
+    <button class="btn btn-cancel">❌ Cancel</button>
+  </div>
+
+  <div class="table-header">
+    <h3>📋 Gender List</h3>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Internal Code</th><th>Gender</th><th>Description</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>001</td><td>Male</td><td>Male</td>
+        <td class="row-actions"><span class="edit-action">✏️</span><span class="delete-action">🗑️</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
