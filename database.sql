@@ -1,21 +1,23 @@
-CREATE TABLE users (
-  id INT PRIMARY KEY NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  status ENUM('active', 'inactive') NOT NULL
+-- genders table for storing gender codes and labels
+CREATE TABLE genders (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(10) UNIQUE NOT NULL,
+  gender_label VARCHAR(100) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO users (name, email, created_at)
-VALUES ('Test', 'test@example.com', NOW());
 
-UPDATE users 
-SET name = 'test' 
-WHERE id = 1;
+-- gender selections table to track which genders are assigned to users
+CREATE TABLE gender_selections (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  gender_id INT NOT NULL,
+  selected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (gender_id) REFERENCES genders(id) ON DELETE CASCADE
+);
 
-DELETE FROM users 
-WHERE id = 1;
-
-DELETE FROM temporary_logs;
-
-SELECT id, name, email 
-FROM users 
-WHERE active = 1  
-LIMIT 10;
+-- insert sample data
+INSERT INTO genders (code, gender_label, description) 
+VALUES 
+  ('1', 'Male - ذكر', 'Male gender'),
+  ('2', 'Female - أنثى', 'Female gender');

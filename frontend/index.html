@@ -1,3 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gender Management - Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="navbar">
+    <div class="nav-left">
+      <h2>🏳️ Gender Management System</h2>
+    </div>
+    <div class="nav-right">
+      <span id="userInfo" class="user-info"></span>
+      <button onclick="logout()" class="btn-logout">🚪 Logout</button>
+    </div>
+  </div>
+
 <div class="main-card">           <!-- NOT "container" -->
   <div class="main-title">        <!-- NOT just "header" -->
     <h1>🏳️ Gender Management</h1>
@@ -6,7 +25,7 @@
   <div class="form-grid">         <!-- NOT "form-row" -->
     <div class="input-field">     <!-- NOT "form-group" -->
       <label>🔢 Internal Code</label>
-      <input type="text" placeholder="Enter internal code">
+      <input type="text" id="code" placeholder="Enter internal code">
     </div>
     <div class="input-field">
       <label>⚧ Gender</label>
@@ -17,7 +36,7 @@
     </div>
     <div class="input-field">
       <label>📝 Description</label>
-      <input type="text" placeholder="Enter description">
+      <input type="text" id="description" placeholder="Enter description">
     </div>
   </div>
 
@@ -38,9 +57,12 @@
         <tr><th>Internal Code</th><th>Gender</th><th>Description</th><th>Actions</th></tr>
       </thead>
       <tbody>
-        <tr><td>001</td><td>Male</td><td>Male</td>
-        <td class="row-actions"><span class="edit-action">✏️</span><span class="delete-action">🗑️</span></td></tr>
       </tbody>
     </table>
   </div>
 </div>
+
+  <script src="auth.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

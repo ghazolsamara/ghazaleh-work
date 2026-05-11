@@ -1,95 +1,167 @@
+const API_URL = "http://localhost:5000/api";
 let selectedRow = null;
+let genders = [];
 
-// ADD
-function addData() {
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", () => {
+  loadGenders();
+  setupEventListeners();
+});
 
-  let code = document.getElementById("code").value;
-  let description = document.getElementById("description").value;
+// Setup event listeners for buttons
+function setupEventListeners() {
+  document.querySelector(".btn-add").addEventListener("click", addData);
+  document.querySelector(".btn-edit").addEventListener("click", editData);
+  document.querySelector(".btn-delete").addEventListener("click", deleteData);
+  document.querySelector(".btn-cancel").addEventListener("click", cancelData);
+}
 
-  let gender = "";
-
-
-  if (code == "1") {
-    gender = "Male - ذكر";
+// Load all genders from backend
+async function loadGenders() {
+  try {
+    const response = await fetch(`${API_URL}/genders`);
+    genders = await response.json();
+    displayGenders();
+  } catch (error) {
+    console.error("Error loading genders:", error);
+    alert("Failed to load genders");
   }
-  else if (code == "2") {
-    gender = "Female - أنثى";
-  }
-  else {
-    alert("Invalid code! Use 1 for Male or 2 for Female");
-    return;
-  }
+}
 
-  if (code === "" || description === "") {
+// Display genders in table
+function displayGenders() {
+  const tbody = document.querySelector("table tbody");
+  tbody.innerHTML = "";
+
+  genders.forEach((gender) => {
+    const row = tbody.insertRow();
+    row.dataset.id = gender.id;
+    row.innerHTML = `
+      <td>${gender.code}</td>
+      <td>${gender.gender_label}</td>
+      <td>${gender.description}</td>
+      <td class="row-actions">
+        <span class="edit-action" onclick="selectRow(${gender.id})">✏️</span>
+        <span class="delete-action" onclick="confirmDelete(${gender.id})">🗑️</span>
+      </td>
+    `;
+    row.onclick = () => selectRow(gender.id);
+  });
+}
+
+// Select row for editing
+function selectRow(genderId) {
+  const gender = genders.find((g) => g.id === genderId);
+  if (gender) {
+    document.getElementById("code").value = gender.code;
+    document.getElementById("description").value = gender.description;
+    document.querySelector("select").value = gender.gender_label.includes("Male") ? "Male" : "Female";
+    selectedRow = genderId;
+  }
+}
+
+// ADD new gender
+async function addData() {
+  const code = document.getElementById("code").value;
+  const description = document.getElementById("description").value;
+  const genderSelect = document.querySelector("select");
+  const gender_label = genderSelect.value === "Male" ? "Male - ذكر" : "Female - أنثى";
+
+  if (!code || !description) {
     alert("Please fill all fields");
     return;
   }
 
-  let table = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
-
-  let newRow = table.insertRow();
-
-  newRow.insertCell(0).innerHTML = code;
-  newRow.insertCell(1).innerHTML = gender;
-  newRow.insertCell(2).innerHTML = description;
-
-  // عند الضغط على الصف
-  newRow.onclick = function () {
-    selectedRow = this;
-
-    document.getElementById("code").value = this.cells[0].innerHTML;
-    document.getElementById("description").value = this.cells[2].innerHTML;
-  };
-
-  clearFields();
-}
-
-// EDIT
-function editData() {
-
-  if (selectedRow == null) {
-    alert("Select row first");
+  if (code !== "1" && code !== "2") {
+    alert("Invalid code! Use 1 for Male or 2 for Female");
     return;
   }
 
-  let code = document.getElementById("code").value;
-  let description = document.getElementById("description").value;
+  try {
+    const response = await fetch(`${API_URL}/genders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, gender_label, description }),
+    });
 
-  let gender = "";
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
 
-  if (code == "1") {
-    gender = "Male - ذكر";
+    await loadGenders();
+    clearFields();
+  } catch (error) {
+    console.error("Error adding gender:", error);
+    alert("Failed to add gender: " + error.message);
   }
-  else if (code == "2") {
-    gender = "Female - أنثى";
-  }
-  else {
-    alert("Invalid code! Use 1 or 2");
+}
+
+// EDIT existing gender
+async function editData() {
+  if (selectedRow === null) {
+    alert("Select a row first");
     return;
   }
 
-  selectedRow.cells[0].innerHTML = code;
-  selectedRow.cells[1].innerHTML = gender;
-  selectedRow.cells[2].innerHTML = description;
+  const code = document.getElementById("code").value;
+  const description = document.getElementById("description").value;
+  const genderSelect = document.querySelector("select");
+  const gender_label = genderSelect.value === "Male" ? "Male - ذكر" : "Female - أنثى";
 
-  clearFields();
-}
-
-// DELETE
-function deleteData() {
-
-  if (selectedRow == null) {
-    alert("Select row first");
+  if (!code || !description) {
+    alert("Please fill all fields");
     return;
   }
 
-  selectedRow.remove();
-  selectedRow = null;
+  try {
+    const response = await fetch(`${API_URL}/genders/${selectedRow}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, gender_label, description }),
+    });
 
-  clearFields();
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    await loadGenders();
+    clearFields();
+  } catch (error) {
+    console.error("Error updating gender:", error);
+    alert("Failed to update gender: " + error.message);
+  }
 }
 
-// CANCEL
+// DELETE gender
+async function deleteData(genderId) {
+  try {
+    const response = await fetch(`${API_URL}/genders/${genderId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    await loadGenders();
+    clearFields();
+  } catch (error) {
+    console.error("Error deleting gender:", error);
+    alert("Failed to delete gender: " + error.message);
+  }
+}
+
+// Confirm before delete
+function confirmDelete(genderId) {
+  if (confirm("Are you sure you want to delete this gender?")) {
+    deleteData(genderId);
+  }
+}
+
+// CANCEL - Clear fields
 function cancelData() {
   clearFields();
 }
@@ -98,5 +170,6 @@ function cancelData() {
 function clearFields() {
   document.getElementById("code").value = "";
   document.getElementById("description").value = "";
+  document.querySelector("select").value = "Male";
   selectedRow = null;
 }
