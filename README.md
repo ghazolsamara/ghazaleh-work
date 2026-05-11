@@ -4,20 +4,42 @@ A full-stack application for managing gender codes and selections with CRUD oper
 
 ## Project Structure
 
-- **backend/**: Node.js + Express API server with PostgreSQL
-- **frontend/**: HTML/CSS/JavaScript client for gender management
-- **database.sql**: PostgreSQL schema and sample data
+- **backend/**: Node.js + Express API server with in-memory data
+- **frontend/react-app/**: React client for gender management with authentication
+- **database.sql**: PostgreSQL schema and sample data (not used in current setup)
 
 ## Features
 
-### Two Tables
+### Authentication
+- Login with demo credentials (admin/password)
+- Session management with localStorage
 
-1. **genders** - Main gender definitions
-   - code (1 = Male, 2 = Female)
-   - gender_label (e.g., "Male - ذكر")
-   - description
+### Gender Management
+- CRUD operations for genders
+- Table display with selection
+- Form for adding/editing genders
 
-2. **gender_selections** - Tracks gender assignments to users
+## Setup
+
+1. **Backend**:
+   ```bash
+   cd backend
+   npm install
+   npm start
+   ```
+   Server runs on http://localhost:5000
+
+2. **Frontend**:
+   ```bash
+   cd frontend/react-app
+   npm install
+   npm start
+   ```
+   App runs on http://localhost:3000
+
+## Demo Credentials
+- Username: admin
+- Password: password
    - user_id
    - gender_id (foreign key to genders)
    - selected_at (timestamp)
